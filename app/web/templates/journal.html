@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Журнал {{ day|dmy }}{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <a class="btn" href="/journal?day={{ prev_day.isoformat() }}&sort={{ sort }}&desc={{ desc|int }}" title="Предыдущий день">←</a>
+  <form method="get" action="/journal" class="inline">
+    <input type="date" name="day" value="{{ day.isoformat() }}" onchange="this.form.submit()" aria-label="День">
+    <input type="hidden" name="sort" value="{{ sort }}">
+    <input type="hidden" name="desc" value="{{ desc|int }}">
+  </form>
+  <a class="btn" href="/journal?day={{ next_day.isoformat() }}&sort={{ sort }}&desc={{ desc|int }}" title="Следующий день">→</a>
+  {% if day != today %}<a class="btn" href="/journal">Сегодня</a>{% endif %}
+</div>
+
+<div class="sorts">
+  <span class="muted">Сортировка:</span>
+  {% for key, label in sorts.items() %}
+    {% set is_on = key == sort %}
+    <a href="/journal?day={{ day.isoformat() }}&sort={{ key }}&desc={{ ((not desc) if is_on else false)|int }}"
+       class="{{ 'on' if is_on }}">{{ label }}{% if is_on %} {{ '↓' if desc else '↑' }}{% endif %}</a>
+  {% endfor %}
+</div>
+
+{% if not groups %}
+<p class="muted">За {{ day|dmy }} заездов нет.</p>
+{% endif %}
+
+<div class="groups">
+{% for g in groups %}
+<details class="group">
+  <summary>
+    <span class="plate">{{ g.plate }}</span>
+    <span>заезд {{ g.first_entry|hm }}{% if g.from_prev_day %} <small class="tag">с прошлого дня</small>{% endif %}</span>
+    <span>выезд {% if g.in_box %}<b class="tag ok">в боксе</b>{% else %}{{ g.last_exit|hm }}{% endif %}</span>
+    <span>{{ g.total|duration }}</span>
+    <span class="muted">заездов: {{ g.count }}</span>
+    <img class="thumb" src="/screenshots/{{ g.visits[0].screenshot }}" alt="" loading="lazy">
+  </summary>
+  <ul class="visits">
+  {% for v in g.visits %}
+    <li>
+      <a href="/screenshots/{{ v.screenshot }}" target="_blank">
+        <img class="thumb" src="/screenshots/{{ v.screenshot }}" alt="{{ v.screenshot }}" loading="lazy">
+      </a>
+      <div>
+        <div>
+          {% if v.entered_at.date() != day %}{{ v.entered_at.strftime('%d.%m %H:%M') }}{% else %}{{ v.entered_at|hm }}{% endif %}
+          → {% if v.exited_at %}{{ v.exited_at|hm }}{% else %}в боксе{% endif %}
+          · {{ v.duration(now)|duration }} · {{ cameras.get(v.camera, v.camera) }}
+        </div>
+        <div class="muted small">
+          {{ v.screenshot }}{% if v.edited_by %} · номер исправил {{ v.edited_by }} (распознано: {{ v.plate_raw }}){% endif %}
+        </div>
+        {% if perms.edit_plate %}
+        <form method="post" action="/visits/{{ v.id }}/plate" class="inline">
+          <input name="plate" value="{{ v.plate }}" maxlength="12" required aria-label="Номер">
+          <button type="submit">✏️ Сохранить</button>
+        </form>
+        {% endif %}
+        {% if perms.delete_visit %}
+        <form method="post" action="/visits/{{ v.id }}/delete" class="inline" onsubmit="return confirm('Удалить заезд?')">
+          <button type="submit" class="danger">Удалить</button>
+        </form>
+        {% endif %}
+        {% if perms.archive %}
+        <a class="btn small" href="/archive?camera={{ v.camera }}&amp;day={{ v.entered_at.date().isoformat() }}&amp;at={{ v.entered_at.strftime('%H:%M:%S') }}">▶ Видео заезда</a>
+        {% endif %}
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+</details>
+{% endfor %}
+</div>
+{% endblock %}

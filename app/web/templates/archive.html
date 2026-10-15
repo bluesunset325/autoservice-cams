@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Архив{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/archive.css">
+<h1>Архив</h1>
+{% if not cam %}
+<p class="muted">Запись не включена ни для одной камеры (Настройки → Запись).</p>
+{% else %}
+{% if archive_status %}
+<div class="card archive-status small">
+  {% for cid, s in archive_status.cameras.items() %}
+    <span>{{ s.name or cid }}: {% if s.state == 'recording' %}🔴 идёт запись с {{ s.since }}{% elif s.state == 'error' %}⚠ {{ s.error }} ({{ s.since }}){% else %}⏸ вне расписания{% endif %}</span>
+  {% endfor %}
+  <span>очередь загрузки: {{ archive_status.queue_count }} ({{ archive_status.queue_gb }} ГБ)</span>
+  <span>последняя загрузка: {{ archive_status.last_upload or '—' }}</span>
+  {% if archive_status.upload_error %}<span class="error">ошибка загрузки с {{ archive_status.upload_error_at }}: {{ archive_status.upload_error }}</span>{% endif %}
+  {% if archive_status.cleanup_error %}<span class="error">очистка: {{ archive_status.cleanup_error }}</span>{% endif %}
+  <span>свободно: {{ archive_status.free_gb }} ГБ</span>
+  {% if archive_status.low_space %}<span class="error">мало места на диске</span>{% endif %}
+</div>
+{% endif %}
+
+<div class="toolbar">
+  {% for c in cams %}<a class="btn {{ 'on' if c.id == cam.id }}" href="/archive?camera={{ c.id }}&day={{ day.isoformat() }}">{{ c.name }}</a>{% endfor %}
+  <a class="btn" href="/archive?camera={{ cam.id }}&day={{ prev_day.isoformat() }}">←</a>
+  <form method="get" action="/archive" class="inline">
+    <input type="hidden" name="camera" value="{{ cam.id }}">
+    <input type="date" name="day" value="{{ day.isoformat() }}" onchange="this.form.submit()" aria-label="День">
+  </form>
+  <a class="btn" href="/archive?camera={{ cam.id }}&day={{ next_day.isoformat() }}">→</a>
+</div>
+
+<p class="legend small">
+  <span class="cell both"></span> на компьютере и на Диске
+  <span class="cell local"></span> только на компьютере, ждёт загрузки
+  <span class="cell drive"></span> только на Диске (откроется в Google Диске)
+  <span class="cell none"></span> записи нет
+</p>
+
+<div class="timeline">
+{% for c in cells %}
+  {% set label = c.start.strftime('%H:%M') %}
+  {% set tip = label ~ ' · ' ~ status_text[c.status] ~ ((' · ' ~ ((c.rec.size / 1048576)|round|int) ~ ' МБ') if c.rec else '') %}
+  {% if c.status in ('both', 'local') %}
+    <a class="cell {{ c.status }}{{ ' sel' if selected and c.rec.id == selected.id }}" title="{{ tip }}" href="/archive?camera={{ cam.id }}&day={{ day.isoformat() }}&rec={{ c.rec.id }}">{{ label }}</a>
+  {% elif c.status == 'drive' %}
+    <a class="cell drive" title="{{ tip }}" target="_blank" rel="noopener noreferrer" href="https://drive.google.com/file/d/{{ c.rec.drive_id }}/view">{{ label }}</a>
+  {% else %}
+    <span class="cell none" title="{{ tip }}">{{ label }}</span>
+  {% endif %}
+{% endfor %}
+</div>
+
+{% if drive_only %}
+<p class="notice">Запись на {{ at }} есть только на Google Диске: <a href="https://drive.google.com/file/d/{{ drive_only.drive_id }}/view" target="_blank" rel="noopener noreferrer">открыть</a></p>
+{% elif missing_at %}
+<p class="muted">Записи на {{ missing_at }} нет.</p>
+{% endif %}
+
+{% if selected %}
+<div class="card player">
+  <video controls autoplay preload="metadata" src="/archive/video/{{ selected.id }}"></video>
+  <div class="toolbar">
+    {% if prev_rec %}<a class="btn" href="/archive?camera={{ cam.id }}&day={{ day.isoformat() }}&rec={{ prev_rec.id }}">◀ предыдущий</a>{% endif %}
+    <span>{{ selected.started_at.strftime('%H:%M') }}</span>
+    {% if next_rec %}<a class="btn" href="/archive?camera={{ cam.id }}&day={{ day.isoformat() }}&rec={{ next_rec.id }}">следующий ▶</a>{% endif %}
+    <a class="btn" href="/archive/video/{{ selected.id }}?download=1">Скачать</a>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

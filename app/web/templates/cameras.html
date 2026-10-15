@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Камеры{% endblock %}
+{% block content %}
+<div id="archive-alert" class="card error" hidden></div>
+<div class="cams">
+{% for cam in cameras %}
+  <section class="cam card" data-camera="{{ cam.id }}">
+    <header>
+      <h2>{{ cam.name }}</h2>
+      <span class="badge" data-status></span>
+      <button type="button" class="small" data-fullscreen title="На весь экран">⛶</button>
+    </header>
+    <div class="video">
+      <iframe src="/go2rtc/stream.html?src={{ cam.id }}&mode=mse" allow="autoplay; fullscreen"
+              allowfullscreen title="{{ cam.name }}"></iframe>
+    </div>
+    {% if cam.recognize %}
+    <div class="inbox">
+      <h3>Сейчас в боксе</h3>
+      <ul data-inbox><li class="muted">—</li></ul>
+    </div>
+    {% endif %}
+  </section>
+{% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/cameras.js"></script>{% endblock %}

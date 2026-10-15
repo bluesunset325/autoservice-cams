@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}АП{% endblock %} — Автосервис</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+{% if user %}
+<nav class="top">
+  <a href="/" class="{{ 'on' if nav == 'cameras' }}">Камеры</a>
+  <a href="/journal" class="{{ 'on' if nav == 'journal' }}">Журнал</a>
+  <a href="/search" class="{{ 'on' if nav == 'search' }}">Поиск</a>
+  {% if perms.archive %}<a href="/archive" class="{{ 'on' if nav == 'archive' }}">Архив</a>{% endif %}
+  {% if perms.users %}<a href="/users" class="{{ 'on' if nav == 'users' }}">Пользователи</a>{% endif %}
+  {% if perms.settings %}<a href="/settings" class="{{ 'on' if nav == 'settings' }}">Настройки</a>{% endif %}
+  <form method="post" action="/logout" class="logout">
+    <span class="muted">{{ user.login }}</span>
+    <button type="submit">Выйти</button>
+  </form>
+</nav>
+{% endif %}
+<main>
+{% block content %}{% endblock %}
+</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>

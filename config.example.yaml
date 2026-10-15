@@ -1,0 +1,40 @@
+# Скопируйте в config.yaml и впишите источники камер (source).
+cameras:
+  - id: box            # только a-z, 0-9, _
+    name: Бокс
+    # iCSee/XMEye: stream=0 — основной поток (нужен для номеров)
+    source: rtsp://192.168.1.50:554/user=admin&password=ПАРОЛЬ&channel=1&stream=0.sdp
+    recognize: true    # распознавать номера на этой камере
+    record: true
+  - id: office
+    name: Офис
+    # Xiaomi: источник берётся из веб-интерфейса go2rtc после входа в аккаунт Mi Home (Task 2)
+    source: xiaomi://...
+    recognize: false
+    record: true
+    # record_source: Xiaomi: пусто — пишется тот же поток; второй xiaomi:// поток может мешать живому видео
+tracker:
+  confirm_reads: 3          # сколько прочтений нужно для заезда
+  confirm_window_s: 5       # ...за сколько секунд
+  exit_after_s: 180         # номер не виден столько секунд -> выезд
+  seen_write_interval_s: 10 # как часто писать last_seen_at в БД
+host: 0.0.0.0
+port: 8000
+analyze_fps: 2
+data_dir: .                 # где лежат data.db, screenshots/, backups/, logs/
+go2rtc_path: go2rtc         # на Windows: go2rtc.exe
+secret_key: ""              # сгенерируется при первом запуске
+recording:
+  start: "09:00"
+  end: "18:00"
+  days: [mon, tue, wed, thu, fri, sat, sun]
+  segment_minutes: 15
+  ffmpeg_path: ffmpeg          # Windows: ffmpeg.exe
+  rclone_path: rclone          # Windows: rclone.exe
+  rclone_remote: "gdrive:"
+  rclone_config: rclone.conf
+  drive_folder: Автосервис
+  upload_bwlimit_mbit: 10      # чтобы не мешать интернету в сервисе
+  drive_retention_days: 45
+  local_cleanup_weekday: mon
+  low_space_gb: 20

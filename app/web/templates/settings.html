@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Настройки{% endblock %}
+{% block content %}
+<h1>Настройки</h1>
+{% if saved %}<p class="notice">Сохранено. Изменения вступят в силу после перезапуска программы.</p>{% endif %}
+<p class="muted">Свободно на диске: {{ free_gb }} ГБ</p>
+
+<form method="post" action="/settings" class="form-grid">
+  {% for cam in cfg.cameras %}
+  <fieldset>
+    <legend>Камера <code>{{ cam.id }}</code></legend>
+    <label>Название <input name="cam_{{ cam.id }}_name" value="{{ cam.name }}" required></label>
+    <label>Источник (rtsp://… или xiaomi://…) <input name="cam_{{ cam.id }}_source" value="{{ cam.source }}" required></label>
+    <label class="inline"><input type="checkbox" name="cam_{{ cam.id }}_recognize" {% if cam.recognize %}checked{% endif %}> распознавать номера</label>
+    <div class="inline">
+      <button type="button" class="small" data-check="{{ cam.id }}">Проверить подключение</button>
+      <span class="muted small" data-check-result="{{ cam.id }}"></span>
+    </div>
+  </fieldset>
+  {% endfor %}
+
+  <fieldset>
+    <legend>Распознавание</legend>
+    <label>Прочтений для заезда <input type="number" name="confirm_reads" min="1" value="{{ cfg.tracker.confirm_reads }}" required></label>
+    <label>…за секунд <input type="number" name="confirm_window_s" min="1" step="any" value="{{ cfg.tracker.confirm_window_s }}" required></label>
+    <label>Выезд, если номер не виден, секунд <input type="number" name="exit_after_s" min="1" step="any" value="{{ cfg.tracker.exit_after_s }}" required></label>
+    <label>Кадров в секунду для анализа <input type="number" name="analyze_fps" min="0.5" max="10" step="any" value="{{ cfg.analyze_fps }}" required></label>
+  </fieldset>
+
+  <button type="submit">Сохранить</button>
+</form>
+
+<h2 style="margin-top:24px">Запись видео</h2>
+<form method="post" action="/settings/recording" class="form-grid">
+  <p class="muted small">Изменения записи вступят в силу после перезапуска программы.</p>
+  <fieldset>
+    <legend>Расписание</legend>
+    <label>С <input type="time" name="rec_start" value="{{ cfg.recording.start }}" required></label>
+    <label>До <input type="time" name="rec_end" value="{{ cfg.recording.end }}" required></label>
+    <div class="inline">
+      {% for d in weekdays %}<label class="inline"><input type="checkbox" name="rec_day_{{ d }}" {% if d in cfg.recording.days %}checked{% endif %}> {{ weekday_names[d] }}</label>{% endfor %}
+    </div>
+    <label>Длина куска, минут <input type="number" name="segment_minutes" min="1" max="60" value="{{ cfg.recording.segment_minutes }}" required></label>
+  </fieldset>
+  {% for cam in cfg.cameras %}
+  <fieldset>
+    <legend>Запись: {{ cam.name }}</legend>
+    <label class="inline"><input type="checkbox" name="cam_{{ cam.id }}_record" {% if cam.record %}checked{% endif %}> записывать</label>
+    <label>Поток для записи (пусто — как основной; для облегчённого — его адрес) <input name="cam_{{ cam.id }}_record_source" value="{{ cam.record_source or '' }}"></label>
+  </fieldset>
+  {% endfor %}
+  <fieldset>
+    <legend>Google Диск и хранение</legend>
+    <label>Лимит загрузки, Мбит/с <input type="number" name="upload_bwlimit_mbit" min="0.1" max="1000" step="any" value="{{ cfg.recording.upload_bwlimit_mbit }}" required></label>
+    <label>Хранить на Диске, дней <input type="number" name="drive_retention_days" min="1" max="3650" value="{{ cfg.recording.drive_retention_days }}" required></label>
+    <label>Очищать компьютер по
+      <select name="local_cleanup_weekday">
+        {% for d in weekdays %}<option value="{{ d }}" {% if d == cfg.recording.local_cleanup_weekday %}selected{% endif %}>{{ weekday_names[d] }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Аварийная очистка, если свободно меньше, ГБ <input type="number" name="low_space_gb" min="1" step="any" value="{{ cfg.recording.low_space_gb }}" required></label>
+    <div class="inline">
+      <button type="button" class="small" id="check-drive">Проверить Google Диск</button>
+      <span class="muted small" id="check-drive-result"></span>
+    </div>
+  </fieldset>
+  <button type="submit">Сохранить запись</button>
+</form>
+
+<p style="margin-top:20px">
+  <button type="button" class="danger" id="restart">Перезапустить программу</button>
+  <span class="muted small" id="restart-result"></span>
+</p>
+<p class="muted small">Проверка идёт через go2rtc по сохранённым и применённым настройкам — после изменения источника сначала перезапустите программу. Новые камеры добавляются в config.yaml на сервере.</p>
+{% endblock %}
+{% block scripts %}<script src="/static/settings.js"></script>{% endblock %}

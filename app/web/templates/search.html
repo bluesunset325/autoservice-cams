@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Поиск{% endblock %}
+{% block content %}
+<form method="get" action="/search" class="card searchform">
+  <input name="q" value="{{ q }}" placeholder="Номер или его часть: 123, ВС77" autofocus aria-label="Номер">
+  <label>с <input type="date" name="date_from" value="{{ date_from }}"></label>
+  <label>по <input type="date" name="date_to" value="{{ date_to }}"></label>
+  <button type="submit">Найти</button>
+</form>
+
+{% if searched %}
+<p class="muted">Найдено: {{ results|length }}{% if results|length >= limit %} (показаны последние {{ limit }}){% endif %}</p>
+{% if results %}
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>Дата</th><th>Номер</th><th>Заезд</th><th>Выезд</th><th>Пробыл</th><th>Камера</th><th></th></tr></thead>
+  <tbody>
+  {% for v in results %}
+    <tr>
+      <td><a href="/journal?day={{ v.entered_at.date().isoformat() }}">{{ v.entered_at.date()|dmy }}</a></td>
+      <td class="plate">{{ v.plate }}</td>
+      <td>{{ v.entered_at|hm }}</td>
+      <td>{% if v.exited_at %}{{ v.exited_at|hm }}{% else %}в боксе{% endif %}</td>
+      <td>{{ v.duration(now)|duration }}</td>
+      <td>{{ cameras.get(v.camera, v.camera) }}</td>
+      <td><a href="/screenshots/{{ v.screenshot }}" target="_blank">скриншот</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Пользователи{% endblock %}
+{% block content %}
+<h1>Пользователи</h1>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>Логин</th><th>Роль</th><th>Новый пароль</th><th></th></tr></thead>
+  <tbody>
+  {% for u in users %}
+    {% set manageable = can_manage(user, u.role) %}
+    <tr>
+      <td>{{ u.login }}{% if u.id == user.id %} <span class="tag">это вы</span>{% endif %}</td>
+      <td>{{ role_names[u.role] }}</td>
+      <td>
+        {% if manageable or u.id == user.id %}
+        <form method="post" action="/users/{{ u.id }}/password" class="inline">
+          <input type="password" name="password" minlength="6" maxlength="64" required placeholder="от 6 символов" aria-label="Новый пароль">
+          <button type="submit">Сменить</button>
+        </form>
+        {% endif %}
+      </td>
+      <td>
+        {% if manageable and u.id != user.id %}
+        <form method="post" action="/users/{{ u.id }}/delete" onsubmit="return confirm('Удалить {{ u.login }}?')">
+          <button type="submit" class="danger">Удалить</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<h2 style="margin-top:20px">Добавить пользователя</h2>
+<form method="post" action="/users" class="card form-grid" style="margin-top:8px">
+  <label>Логин <input name="login" required minlength="3" maxlength="32" pattern="[A-Za-z0-9_.\-]+" placeholder="латиница и цифры"></label>
+  <label>Пароль <input type="password" name="password" required minlength="6" maxlength="64"></label>
+  <label>Роль
+    <select name="role">
+      {% for r in roles %}<option value="{{ r }}">{{ role_names[r] }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit">Создать</button>
+</form>
+{% endblock %}
